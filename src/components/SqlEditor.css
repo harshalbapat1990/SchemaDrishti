@@ -1,0 +1,185 @@
+.sql-editor {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+}
+
+.sql-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.sql-editor-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.editor-icon {
+  font-size: 1rem;
+}
+
+.sql-editor-status {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.sql-editor-status .loading {
+  color: var(--warning-color);
+}
+
+.sql-editor-status .ready {
+  color: var(--success-color);
+}
+
+.sql-editor-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  margin: 0.5rem;
+  background-color: var(--bg-primary);
+}
+
+/* NEW: Footer with keyboard shortcuts */
+.sql-editor-footer {
+  padding: 0.5rem 1rem;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.keyboard-shortcuts {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.shortcut {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.shortcut kbd {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.65rem;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  color: var(--text-secondary);
+  box-shadow: 0 1px 0 var(--border-color);
+}
+
+/* Loading state */
+.editor-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-secondary);
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Monaco Editor overrides for our theme */
+.sql-editor-container .monaco-editor {
+  border-radius: var(--border-radius);
+}
+
+.sql-editor-container .monaco-editor .margin {
+  background-color: var(--bg-secondary);
+}
+
+.sql-editor-container .monaco-editor .monaco-editor-background {
+  background-color: var(--bg-primary);
+}
+
+/* Scrollbar styling to match our theme */
+.sql-editor-container .monaco-scrollable-element .scrollbar {
+  background-color: var(--bg-secondary);
+}
+
+.sql-editor-container .monaco-scrollable-element .scrollbar .slider {
+  background-color: var(--border-color);
+}
+
+.sql-editor-container .monaco-scrollable-element .scrollbar .slider:hover {
+  background-color: var(--text-muted);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .sql-editor-header {
+    padding: 0.5rem;
+  }
+  
+  .sql-editor-title {
+    font-size: 0.8rem;
+  }
+  
+  .sql-editor-container {
+    margin: 0.25rem;
+  }
+  
+  .keyboard-shortcuts {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .shortcut {
+    font-size: 0.65rem;
+  }
+  
+  .shortcut kbd {
+    font-size: 0.6rem;
+    padding: 0.05rem 0.2rem;
+  }
+}
+
+/* Focus management */
+.sql-editor-container:focus-within {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .sql-editor-container,
+  .sql-editor-header,
+  .sql-editor-footer {
+    border-width: 2px;
+  }
+  
+  .shortcut kbd {
+    border-width: 2px;
+  }
+}

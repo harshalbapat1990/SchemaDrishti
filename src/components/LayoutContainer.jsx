@@ -6,8 +6,8 @@ import './LayoutContainer.css';
 function LayoutContainer({ 
   leftPanel, 
   rightPanel, 
-  defaultSplitPercentage = 30, // Changed from 50 to 30
-  minLeftWidth = 250, // Reduced minimum for editor
+  defaultSplitPercentage = 30,
+  minLeftWidth = 250,
   minRightWidth = 300 
 }) {
   // Get initial split from localStorage or use default
@@ -19,6 +19,7 @@ function LayoutContainer({
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
   const splitterRef = useRef(null);
+  const dragStateRef = useRef({ isDragging: false, startX: 0, startPercentage: 0 });
 
   // Debounced function to save layout settings
   const saveLayoutSettings = useCallback(
@@ -32,20 +33,25 @@ function LayoutContainer({
     []
   );
 
-  // Handle mouse move during drag - IMPROVED
+  // Handle mouse move during drag - FIXED for smooth movement
   const handleMouseMove = useCallback((e) => {
-    if (!containerRef.current || !isDragging) return;
+    if (!dragStateRef.current.isDragging || !containerRef.current) return;
     
-    e.preventDefault(); // Prevent any default behavior
+    e.preventDefault();
+    e.stopPropagation();
     
     const containerRect = containerRef.current.getBoundingClientRect();
     const containerWidth = containerRect.width;
-    const mouseX = e.clientX - containerRect.left;
     
-    // Calculate new percentage with higher precision
-    let newPercentage = (mouseX / containerWidth) * 100;
+    // Calculate the mouse movement from the start position
+    const currentX = e.clientX - containerRect.left;
+    const deltaX = currentX - dragStateRef.current.startX;
+    const deltaPercentage = (deltaX / containerWidth) * 100;
     
-    // Apply constraints with better calculations
+    // Calculate new percentage based on starting percentage + delta
+    let newPercentage = dragStateRef.current.startPercentage + deltaPercentage;
+    
+    // Apply constraints
     const minLeftPercentage = (minLeftWidth / containerWidth) * 100;
     const minRightPercentage = (minRightWidth / containerWidth) * 100;
     const maxLeftPercentage = 100 - minRightPercentage;
@@ -53,53 +59,78 @@ function LayoutContainer({
     // Clamp the percentage within valid bounds
     newPercentage = Math.max(minLeftPercentage, Math.min(maxLeftPercentage, newPercentage));
     
-    // Round to 1 decimal place for smoother movement
-    newPercentage = Math.round(newPercentage * 10) / 10;
-    
+    // Update the state immediately for smooth movement
     setSplitPercentage(newPercentage);
-  }, [minLeftWidth, minRightWidth, isDragging]);
+    
+  }, [minLeftWidth, minRightWidth]);
 
   // Handle mouse up - end drag
   const handleMouseUp = useCallback(() => {
-    if (!isDragging) return;
+    if (!dragStateRef.current.isDragging) return;
     
+    dragStateRef.current.isDragging = false;
     setIsDragging(false);
     
     // Remove global event listeners
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
+    document.removeEventListener('mousemove', handleMouseMove, true);
+    document.removeEventListener('mouseup', handleMouseUp, true);
+    document.removeEventListener('selectstart', preventSelection, true);
+    document.removeEventListener('dragstart', preventSelection, true);
     
     // Restore normal cursor and text selection
     document.body.style.userSelect = '';
     document.body.style.cursor = '';
+    document.body.classList.remove('layout-dragging');
     
     // Save the current split percentage
     saveLayoutSettings(splitPercentage);
-  }, [handleMouseMove, saveLayoutSettings, splitPercentage, isDragging]);
+    
+    console.log('Drag ended, final percentage:', splitPercentage);
+    
+  }, [handleMouseMove, saveLayoutSettings, splitPercentage]);
 
-  // Handle mouse down on splitter - IMPROVED
+  // Prevent text selection during drag
+  const preventSelection = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }, []);
+
+  // Handle mouse down on splitter - FIXED initialization
   const handleMouseDown = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     
+    // Only handle left mouse button
+    if (e.button !== 0) return;
+    
+    if (!containerRef.current) return;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    
+    // Initialize drag state
+    dragStateRef.current = {
+      isDragging: true,
+      startX: e.clientX - containerRect.left,
+      startPercentage: splitPercentage
+    };
+    
     setIsDragging(true);
     
-    // Add global mouse event listeners with passive: false for better performance
-    document.addEventListener('mousemove', handleMouseMove, { passive: false });
-    document.addEventListener('mouseup', handleMouseUp, { passive: false });
+    // Add global event listeners with capture=true for better handling
+    document.addEventListener('mousemove', handleMouseMove, true);
+    document.addEventListener('mouseup', handleMouseUp, true);
+    document.addEventListener('selectstart', preventSelection, true);
+    document.addEventListener('dragstart', preventSelection, true);
     
     // Prevent text selection while dragging
     document.body.style.userSelect = 'none';
     document.body.style.cursor = 'col-resize';
+    document.body.classList.add('layout-dragging');
     
-    // Prevent context menu on right-click drag
-    document.addEventListener('contextmenu', preventContextMenu);
-  }, [handleMouseMove, handleMouseUp]);
-
-  // Prevent context menu during drag
-  const preventContextMenu = useCallback((e) => {
-    e.preventDefault();
-  }, []);
+    console.log('Drag started at:', dragStateRef.current.startX, 'percentage:', splitPercentage);
+    
+  }, [splitPercentage, handleMouseMove, handleMouseUp, preventSelection]);
 
   // Handle keyboard navigation for accessibility
   const handleKeyDown = useCallback((e) => {
@@ -108,23 +139,47 @@ function LayoutContainer({
       const step = e.shiftKey ? 5 : 1;
       const direction = e.key === 'ArrowLeft' ? -step : step;
       
-      const newPercentage = Math.max(10, Math.min(90, splitPercentage + direction));
+      let newPercentage = splitPercentage + direction;
+      
+      // Apply same constraints as mouse
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.getBoundingClientRect().width;
+        const minLeftPercentage = (minLeftWidth / containerWidth) * 100;
+        const minRightPercentage = (minRightWidth / containerWidth) * 100;
+        const maxLeftPercentage = 100 - minRightPercentage;
+        
+        newPercentage = Math.max(minLeftPercentage, Math.min(maxLeftPercentage, newPercentage));
+      }
+      
       setSplitPercentage(newPercentage);
       saveLayoutSettings(newPercentage);
     }
-  }, [splitPercentage, saveLayoutSettings]);
+  }, [splitPercentage, saveLayoutSettings, minLeftWidth, minRightWidth]);
 
   // Cleanup event listeners on unmount
   useEffect(() => {
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('contextmenu', preventContextMenu);
-      // Restore body styles
+      document.removeEventListener('mousemove', handleMouseMove, true);
+      document.removeEventListener('mouseup', handleMouseUp, true);
+      document.removeEventListener('selectstart', preventSelection, true);
+      document.removeEventListener('dragstart', preventSelection, true);
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
+      document.body.classList.remove('layout-dragging');
+      dragStateRef.current.isDragging = false;
     };
-  }, [handleMouseMove, handleMouseUp, preventContextMenu]);
+  }, [handleMouseMove, handleMouseUp, preventSelection]);
+
+  // Handle window resize to maintain proportions
+  useEffect(() => {
+    const handleResize = debounce(() => {
+      // Force a re-render with current percentage to maintain proportions
+      setSplitPercentage(prev => prev);
+    }, 100);
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <div 
@@ -134,12 +189,12 @@ function LayoutContainer({
       {/* Left Panel */}
       <div 
         className="layout-panel layout-panel-left"
-        style={{ width: `${splitPercentage}%` }}
+        style={{ width: `calc(${splitPercentage}% - 4px)` }}
       >
         {leftPanel}
       </div>
 
-      {/* Splitter - IMPROVED */}
+      {/* Splitter */}
       <div
         ref={splitterRef}
         className="layout-splitter"
@@ -148,11 +203,11 @@ function LayoutContainer({
         tabIndex={0}
         role="separator"
         aria-orientation="vertical"
-        aria-label="Resize panels"
+        aria-label={`Resize panels. Current split: ${Math.round(splitPercentage)}% / ${Math.round(100 - splitPercentage)}%`}
         aria-valuenow={Math.round(splitPercentage)}
         aria-valuemin={10}
         aria-valuemax={90}
-        title="Drag to resize panels"
+        title={`Drag to resize panels (${Math.round(splitPercentage)}% / ${Math.round(100 - splitPercentage)}%)`}
       >
         <div className="layout-splitter-handle">
           <div className="layout-splitter-dots">
@@ -166,7 +221,7 @@ function LayoutContainer({
       {/* Right Panel */}
       <div 
         className="layout-panel layout-panel-right"
-        style={{ width: `${100 - splitPercentage}%` }}
+        style={{ width: `calc(${100 - splitPercentage}% - 4px)` }}
       >
         {rightPanel}
       </div>

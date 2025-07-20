@@ -1,64 +1,32 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { ThemeProvider } from './state/themeContext';
 import LayoutContainer from './components/LayoutContainer';
 import ThemeToggle from './components/ThemeToggle';
+import SqlEditor from './components/SqlEditor';
 import './App.css';
 import './styles/theme.css';
 
-// Temporary placeholder panels for testing
+// SQL Editor Panel Component
 function LeftPanel() {
+  const [sqlContent, setSqlContent] = useState('');
+
+  const handleSqlContentChange = useCallback((content) => {
+    setSqlContent(content);
+    // Future: Trigger SQL parsing and diagram update
+    console.log('SQL content changed, length:', content.length);
+  }, []);
+
   return (
-    <div style={{ 
-      padding: '1rem', 
-      height: '100%', 
-      backgroundColor: 'var(--bg-secondary)',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>
-        SQL Editor Panel (30%)
-      </h3>
-      <div style={{ 
-        flex: 1,
-        backgroundColor: 'var(--bg-primary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 'var(--border-radius)',
-        padding: '1rem',
-        fontFamily: 'monospace',
-        fontSize: '0.875rem',
-        color: 'var(--text-muted)'
-      }}>
-        -- Monaco Editor will go here
-        <br />
-        CREATE TABLE Users (
-        <br />
-        &nbsp;&nbsp;ID int PRIMARY KEY,
-        <br />
-        &nbsp;&nbsp;Name varchar(100) NOT NULL,
-        <br />
-        &nbsp;&nbsp;Email varchar(255) UNIQUE,
-        <br />
-        &nbsp;&nbsp;CreatedDate datetime DEFAULT GETDATE()
-        <br />
-        );
-        <br />
-        <br />
-        CREATE TABLE Orders (
-        <br />
-        &nbsp;&nbsp;OrderID int PRIMARY KEY,
-        <br />
-        &nbsp;&nbsp;UserID int FOREIGN KEY REFERENCES Users(ID),
-        <br />
-        &nbsp;&nbsp;OrderDate datetime,
-        <br />
-        &nbsp;&nbsp;Total decimal(10,2)
-        <br />
-        );
-      </div>
+    <div className="panel-container">
+      <SqlEditor 
+        onContentChange={handleSqlContentChange}
+        initialContent=""
+      />
     </div>
   );
 }
 
+// Diagram Panel Component (still placeholder)
 function RightPanel() {
   return (
     <div style={{ 
@@ -68,9 +36,12 @@ function RightPanel() {
       display: 'flex',
       flexDirection: 'column'
     }}>
-      <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>
-        Diagram Viewer Panel (70%)
-      </h3>
+      <div className="panel-header">
+        <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>
+          <span style={{ marginRight: '0.5rem' }}>📊</span>
+          Database Diagram
+        </h3>
+      </div>
       <div style={{ 
         flex: 1,
         backgroundColor: 'var(--bg-primary)',
@@ -84,10 +55,25 @@ function RightPanel() {
         textAlign: 'center'
       }}>
         <div>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
-          <div style={{ marginBottom: '0.5rem' }}>Mermaid.js ERD will render here</div>
+          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🔄</div>
+          <div style={{ marginBottom: '0.5rem', fontSize: '1.1rem' }}>
+            Mermaid.js ERD will render here
+          </div>
           <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            This larger panel (70%) will show the database diagram
+            Live diagram updates as you type SQL in the editor
+          </div>
+          <div style={{ 
+            marginTop: '2rem', 
+            padding: '1rem',
+            backgroundColor: 'var(--bg-secondary)',
+            borderRadius: 'var(--border-radius)',
+            fontSize: '0.8rem',
+            color: 'var(--text-muted)'
+          }}>
+            <strong>Coming in Task 4:</strong>
+            <br />• Real-time SQL parsing
+            <br />• Entity-relationship diagram generation
+            <br />• Interactive diagram elements
           </div>
         </div>
       </div>
@@ -109,6 +95,9 @@ function App() {
               </span>
             </div>
             <div className="app-header-controls">
+              <div className="editor-controls">
+                <span className="shortcut-hint">Ctrl+Shift+F to format • F5 to run</span>
+              </div>
               <ThemeToggle />
             </div>
           </div>
@@ -120,16 +109,16 @@ function App() {
             leftPanel={<LeftPanel />}
             rightPanel={<RightPanel />}
             defaultSplitPercentage={30}  // 30% for editor, 70% for diagram
-            minLeftWidth={250}           // Minimum width for editor panel
-            minRightWidth={300}          // Minimum width for diagram panel
+            minLeftWidth={300}           // Minimum width for editor panel
+            minRightWidth={400}          // Minimum width for diagram panel
           />
         </main>
 
         {/* Status Bar */}
         <footer className="app-footer">
           <div className="app-footer-content">
-            <span>MVP 1 - Task 2: Layout Container & Theme System ✅</span>
-            <span>30% Editor | 70% Diagram | Drag to resize</span>
+            <span>MVP 1 - Task 3: Monaco SQL Editor ✅</span>
+            <span>Monaco Editor • SQL IntelliSense • Auto-save enabled</span>
           </div>
         </footer>
       </div>

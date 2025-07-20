@@ -11,10 +11,27 @@
   user-select: none;
 }
 
-/* IMPROVED: Remove transitions during drag for smoother movement */
-.layout-container.dragging .layout-panel {
-  transition: none;
-  pointer-events: none; /* Prevent interference during drag */
+/* Global dragging state - MORE AGGRESSIVE */
+body.layout-dragging {
+  cursor: col-resize !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+body.layout-dragging * {
+  cursor: col-resize !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  pointer-events: none !important;
+}
+
+/* Except the splitter itself */
+body.layout-dragging .layout-splitter {
+  pointer-events: auto !important;
 }
 
 .layout-panel {
@@ -22,8 +39,9 @@
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   position: relative;
-  /* Smooth transition only when not dragging */
-  transition: width 0.1s ease-out;
+  min-width: 200px;
+  /* Remove any transitions that might interfere */
+  transition: none;
 }
 
 .layout-panel-left {
@@ -35,7 +53,7 @@
 }
 
 .layout-splitter {
-  width: 8px; /* Slightly wider for easier grabbing */
+  width: 8px;
   background-color: var(--bg-secondary);
   border-left: 1px solid var(--border-color);
   border-right: 1px solid var(--border-color);
@@ -44,13 +62,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.1s ease;
   user-select: none;
-  flex-shrink: 0; /* Prevent splitter from shrinking */
+  flex-shrink: 0;
+  z-index: 100; /* Higher z-index */
+  /* Ensure it's always interactive */
+  pointer-events: auto;
 }
 
 .layout-splitter:hover {
   background-color: var(--bg-accent);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
 }
 
 .layout-splitter:focus {
@@ -59,18 +81,22 @@
   background-color: var(--primary-light);
 }
 
-/* IMPROVED: Better visual feedback during drag */
+.layout-splitter:active,
 .layout-container.dragging .layout-splitter {
   background-color: var(--primary-color);
   box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
+  /* Disable transition during drag for immediate response */
+  transition: none;
 }
 
 .layout-splitter-handle {
-  height: 50px; /* Taller for better grab area */
+  height: 60px;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Allow events to pass through */
+  pointer-events: none;
 }
 
 .layout-splitter-dots {
@@ -85,7 +111,7 @@
   height: 3px;
   background-color: var(--text-muted);
   border-radius: 50%;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.1s ease;
 }
 
 .layout-splitter:hover .splitter-dot,
@@ -93,24 +119,30 @@
   background-color: var(--text-secondary);
 }
 
-/* Active dragging state */
-.layout-container.dragging .splitter-dot {
+.layout-container.dragging .splitter-dot,
+.layout-splitter:active .splitter-dot {
   background-color: var(--text-inverse);
+  transition: none;
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
   .layout-splitter {
-    width: 10px;
+    width: 12px;
+    z-index: 200; /* Even higher on mobile */
   }
   
   .layout-splitter-handle {
-    height: 70px;
+    height: 80px;
   }
   
   .splitter-dot {
     width: 4px;
     height: 4px;
+  }
+  
+  .layout-panel {
+    min-width: 150px;
   }
 }
 
@@ -126,14 +158,13 @@
   }
 }
 
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  .layout-panel {
-    transition: none;
-  }
-  
-  .layout-splitter,
-  .splitter-dot {
-    transition: none;
-  }
+/* Completely disable transitions during drag for all browsers */
+.layout-container.dragging,
+.layout-container.dragging *,
+.layout-container.dragging .layout-panel,
+.layout-container.dragging .layout-splitter {
+  transition: none !important;
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
 }

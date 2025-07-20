@@ -58,6 +58,21 @@
   gap: 1rem;
 }
 
+.editor-controls {
+  display: flex;
+  align-items: center;
+}
+
+.shortcut-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  background-color: var(--bg-tertiary);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+
 .app-main {
   flex: 1;
   overflow: hidden;
@@ -77,6 +92,30 @@
   align-items: center;
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+/* Panel Container Styles */
+.panel-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+}
+
+.panel-header {
+  padding: 1rem 1rem 0.5rem 1rem;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
 }
 
 /* Responsive design */
@@ -99,6 +138,10 @@
     font-size: 0.75rem;
   }
   
+  .shortcut-hint {
+    display: none; /* Hide keyboard shortcuts on mobile */
+  }
+  
   .app-footer-content {
     flex-direction: column;
     gap: 0.25rem;
@@ -114,7 +157,12 @@
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   .app-header,
-  .app-footer {
+  .app-footer,
+  .panel-header {
+    border-width: 2px;
+  }
+  
+  .shortcut-hint {
     border-width: 2px;
   }
 }
