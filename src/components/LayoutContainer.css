@@ -1,0 +1,139 @@
+.layout-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+}
+
+.layout-container.dragging {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* IMPROVED: Remove transitions during drag for smoother movement */
+.layout-container.dragging .layout-panel {
+  transition: none;
+  pointer-events: none; /* Prevent interference during drag */
+}
+
+.layout-panel {
+  overflow: hidden;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  position: relative;
+  /* Smooth transition only when not dragging */
+  transition: width 0.1s ease-out;
+}
+
+.layout-panel-left {
+  border-right: none;
+}
+
+.layout-panel-right {
+  border-left: none;
+}
+
+.layout-splitter {
+  width: 8px; /* Slightly wider for easier grabbing */
+  background-color: var(--bg-secondary);
+  border-left: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  cursor: col-resize;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  user-select: none;
+  flex-shrink: 0; /* Prevent splitter from shrinking */
+}
+
+.layout-splitter:hover {
+  background-color: var(--bg-accent);
+}
+
+.layout-splitter:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+  background-color: var(--primary-light);
+}
+
+/* IMPROVED: Better visual feedback during drag */
+.layout-container.dragging .layout-splitter {
+  background-color: var(--primary-color);
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
+}
+
+.layout-splitter-handle {
+  height: 50px; /* Taller for better grab area */
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layout-splitter-dots {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+}
+
+.splitter-dot {
+  width: 3px;
+  height: 3px;
+  background-color: var(--text-muted);
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.layout-splitter:hover .splitter-dot,
+.layout-splitter:focus .splitter-dot {
+  background-color: var(--text-secondary);
+}
+
+/* Active dragging state */
+.layout-container.dragging .splitter-dot {
+  background-color: var(--text-inverse);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .layout-splitter {
+    width: 10px;
+  }
+  
+  .layout-splitter-handle {
+    height: 70px;
+  }
+  
+  .splitter-dot {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .layout-splitter {
+    border-width: 2px;
+  }
+  
+  .splitter-dot {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .layout-panel {
+    transition: none;
+  }
+  
+  .layout-splitter,
+  .splitter-dot {
+    transition: none;
+  }
+}
