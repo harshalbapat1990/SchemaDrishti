@@ -2,10 +2,10 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { useTheme } from '../state/themeContext';
 import { STORAGE_KEYS, EDITOR_DEFAULTS } from '../utils/constants';
-import { getStorageValue, setStorageValue, debounce } from '../utils/helpers';
+import { getStorageValue, setStorageValue, debounce, validateSqlContent } from '../utils/helpers';
 import './SqlEditor.css';
 
-function SqlEditor({ onContentChange, initialContent = '' }) {
+function SqlEditor({ onContentChange, onParseRequest, initialContent = '' }) {
   const { isDark } = useTheme();
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
@@ -18,6 +18,7 @@ function SqlEditor({ onContentChange, initialContent = '' }) {
   });
   
   const [isLoading, setIsLoading] = useState(true);
+  const [validationResult, setValidationResult] = useState(null);
   const [editorOptions, setEditorOptions] = useState({
     fontSize: EDITOR_DEFAULTS.FONT_SIZE,
     tabSize: EDITOR_DEFAULTS.TAB_SIZE,
@@ -42,12 +43,18 @@ function SqlEditor({ onContentChange, initialContent = '' }) {
     renderWhitespace: 'selection'
   });
 
-  // Debounced save function
-  const saveContent = useCallback(
+  // Debounced save and validation function
+  const saveAndValidateContent = useCallback(
     debounce((value) => {
       setStorageValue(STORAGE_KEYS.SQL_CONTENT, value);
+      
+      // Validate content
+      const validation = validateSqlContent(value);
+      setValidationResult(validation);
+      
+      // Notify parent component
       if (onContentChange) {
-        onContentChange(value);
+        onContentChange(value, validation);
       }
     }, 500),
     [onContentChange]
@@ -57,8 +64,13 @@ function SqlEditor({ onContentChange, initialContent = '' }) {
   const handleManualSave = useCallback(() => {
     const currentContent = editorRef.current?.getValue() || '';
     setStorageValue(STORAGE_KEYS.SQL_CONTENT, currentContent);
+    
+    // Validate immediately on manual save
+    const validation = validateSqlContent(currentContent);
+    setValidationResult(validation);
+    
     if (onContentChange) {
-      onContentChange(currentContent);
+      onContentChange(currentContent, validation);
     }
     
     // Show a temporary save indicator
@@ -73,7 +85,7 @@ function SqlEditor({ onContentChange, initialContent = '' }) {
       }, 1000);
     }
     
-    console.log('Manual save completed');
+    console.log('Manual save completed with validation:', validation);
   }, [onContentChange]);
 
   // Format code function for keyboard shortcut
@@ -102,23 +114,28 @@ function SqlEditor({ onContentChange, initialContent = '' }) {
     }
   }, []);
 
-  // Run SQL function (placeholder for future implementation)
-  const handleRunSql = useCallback(() => {
+  // Parse SQL function - NEW
+  const handleParseRequest = useCallback(() => {
     const currentContent = editorRef.current?.getValue() || '';
-    console.log('Run SQL triggered (future feature):', currentContent.substring(0, 100) + '...');
     
-    // Show a temporary run indicator
+    if (onParseRequest) {
+      onParseRequest(currentContent);
+    }
+    
+    // Show a temporary parse indicator
     const statusElement = document.querySelector('.sql-editor-status .ready');
     if (statusElement) {
       const originalText = statusElement.textContent;
-      statusElement.textContent = 'Running...';
+      statusElement.textContent = 'Parsing...';
       statusElement.style.color = 'var(--warning-color)';
       setTimeout(() => {
         statusElement.textContent = originalText;
         statusElement.style.color = 'var(--success-color)';
       }, 2000);
     }
-  }, []);
+    
+    console.log('Parse request triggered for content length:', currentContent.length);
+  }, [onParseRequest]);
 
   // Handle editor mount
   const handleEditorDidMount = useCallback((editor, monaco) => {
@@ -129,7 +146,7 @@ function SqlEditor({ onContentChange, initialContent = '' }) {
     // Configure SQL language features
     configureSqlLanguage(monaco);
     
-    // Set up keyboard shortcuts - FIXED
+    // Set up keyboard shortcuts
     setupKeyboardShortcuts(editor, monaco);
     
     // Prevent editor from interfering with splitter drag
@@ -140,19 +157,23 @@ function SqlEditor({ onContentChange, initialContent = '' }) {
       });
     }
     
+    // Initial validation
+    const validation = validateSqlContent(content);
+    setValidationResult(validation);
+    
     // Focus the editor
     editor.focus();
     
-    console.log('Monaco Editor mounted successfully with keyboard shortcuts');
-  }, [handleManualSave, handleFormatCode, handleRunSql]);
+    console.log('Monaco Editor mounted successfully with validation');
+  }, [content, handleManualSave, handleFormatCode, handleParseRequest]);
 
   // Handle content change
   const handleEditorChange = useCallback((value) => {
     setContent(value || '');
-    saveContent(value || '');
-  }, [saveContent]);
+    saveAndValidateContent(value || '');
+  }, [saveAndValidateContent]);
 
-  // Setup keyboard shortcuts - FIXED IMPLEMENTATION
+  // Setup keyboard shortcuts
   const setupKeyboardShortcuts = useCallback((editor, monaco) => {
     // Ctrl+S to save
     editor.addCommand(
@@ -168,38 +189,27 @@ function SqlEditor({ onContentChange, initialContent = '' }) {
       ''
     );
 
-    // F5 to simulate "run" (for future implementation)
+    // F5 to parse SQL - NEW
     editor.addCommand(
       monaco.KeyCode.F5,
-      handleRunSql,
+      handleParseRequest,
       ''
     );
 
-    // Alt+Shift+F as alternative format shortcut
+    // Ctrl+Enter as alternative parse shortcut - NEW
     editor.addCommand(
-      monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.KeyF,
-      handleFormatCode,
-      ''
-    );
-
-    // Ctrl+K, Ctrl+F as another format shortcut (VS Code style)
-    editor.addCommand(
-      monaco.KeyMod.chord(
-        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK,
-        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF
-      ),
-      handleFormatCode,
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+      handleParseRequest,
       ''
     );
 
     console.log('Keyboard shortcuts registered:');
     console.log('- Ctrl+S: Save');
     console.log('- Ctrl+Shift+F: Format');
-    console.log('- Alt+Shift+F: Format (alternative)');
-    console.log('- Ctrl+K, Ctrl+F: Format (VS Code style)');
-    console.log('- F5: Run SQL (future feature)');
+    console.log('- F5: Parse SQL');
+    console.log('- Ctrl+Enter: Parse SQL');
     
-  }, [handleManualSave, handleFormatCode, handleRunSql]);
+  }, [handleManualSave, handleFormatCode, handleParseRequest]);
 
   // Configure SQL language support
   const configureSqlLanguage = useCallback((monaco) => {
@@ -417,6 +427,17 @@ SELECT u.FirstName,u.LastName,COUNT(o.OrderID) as OrderCount FROM Users u LEFT J
         <div className="sql-editor-status">
           {isLoading ? (
             <span className="loading">Loading...</span>
+          ) : validationResult ? (
+            <div className="validation-status">
+              {validationResult.isValid ? (
+                <span className="ready">✅ Valid SQL</span>
+              ) : (
+                <span className="error">❌ {validationResult.errors.length} Error(s)</span>
+              )}
+              {validationResult.warnings && validationResult.warnings.length > 0 && (
+                <span className="warning">⚠️ {validationResult.warnings.length} Warning(s)</span>
+              )}
+            </div>
           ) : (
             <span className="ready">Ready</span>
           )}
@@ -446,7 +467,8 @@ SELECT u.FirstName,u.LastName,COUNT(o.OrderID) as OrderCount FROM Users u LEFT J
         <div className="keyboard-shortcuts">
           <span className="shortcut"><kbd>Ctrl</kbd>+<kbd>S</kbd> Save</span>
           <span className="shortcut"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> Format</span>
-          <span className="shortcut"><kbd>F5</kbd> Run (soon)</span>
+          <span className="shortcut"><kbd>F5</kbd> Parse</span>
+          <span className="shortcut"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> Parse</span>
         </div>
       </div>
     </div>
